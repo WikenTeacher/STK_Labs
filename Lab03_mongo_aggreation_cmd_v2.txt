@@ -1,0 +1,165 @@
+db.movieDetails.createIndex({ runtime: 1 })
+db.movieDetails.createIndex({ countries: 1 })
+db.movieDetails.createIndex({ director: 1 })
+db.movieDetails.createIndex({ "imdb.rating": 1 })
+db.movieDetails.createIndex({ "tomato.meter": 1 })
+db.movieDetails.createIndex({ metacritic: 1 })
+db.movieDetails.createIndex({ "awards.wins": 1 })
+
+
+
+db.movieDetails.aggregate([
+  {
+    $match: { genres: "Western" } 
+  },
+  {
+    $group: {
+      _id: "$director", // Group by director
+      averageRating: { $avg: "$imdb.rating" }, 
+      totalVotes: { $sum: "$imdb.votes" } 
+    }
+  },
+  {
+    $sort: { averageRating: -1 } 
+  },
+  {
+    $limit: 5 
+  }
+])
+
+
+db.movieDetails.aggregate([
+{
+  $lookup: {
+    from: "directors",
+    localField: "director",
+    foreignField: "_id",
+    as: "director_info"
+  }
+},
+{
+  $unwind: "$director_info"
+},
+{
+  $project: {
+    _id: 0,
+    director: "$director_info.name",
+    averageRating: 1,
+    totalVotes: 1
+  }
+}
+])
+
+
+db.movieDetails.aggregate([
+{
+  $project: {
+    title: 1,
+    year: 1,
+    rated: 1,
+    genres: 1,
+    director: 1,
+    actors: 1
+  }
+},
+{
+  $unwind: "$actors"
+},
+{
+  $match: {
+    actors: "Henry Fonda"
+  }
+},
+{
+  $group: {
+    _id: "$genres",
+    count: { $sum: 1 },
+    movies: { $push: "$title" }
+  }
+},
+{
+  $sort: {
+    count: -1
+  }
+},
+{
+  $limit: 5
+}
+])
+
+db.movieDetails.aggregate([
+  {
+    $match: { genres: "Western" }
+  },
+  {
+    $group: {
+      _id: "$rated",
+      averageRuntime: { $avg: "$runtime" },
+      count: { $sum: 1 }
+    }
+  },
+  {
+    $sort: { averageRuntime: -1 }
+  }
+])
+
+
+LAB 4
+
+db.movieDetails.aggregate([
+  {
+    $match: {
+      genres: "Western"
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      year: 1,
+      director: 1,
+      actors: 1,
+      plot: 1,
+      imdb: 1,
+      tomato: 1
+    }
+  },
+  {
+    $addFields: {
+      "imdb.votesString": { $toString: "$imdb.votes" },
+      "tomato.reviewsString": { $toString: "$tomato.reviews" }
+    }
+  }
+])
+
+
+
+LAB 5
+
+db.movieDetails.aggregate([
+  {
+    $match: {
+      genres: "Western"
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      director: 1,
+      actors: 1,
+      plot: 1
+    }
+  },
+  {
+    $addFields: {
+      ratingAvg: {
+        $avg: [
+          "$imdb.rating",
+          "$tomato.rating"
+        ]
+      }
+    }
+  }
+])
+
